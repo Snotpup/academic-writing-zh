@@ -8,5 +8,6 @@ README.md
 SKILL.md
 agents/openai.yaml
 assets/avatar.png
+assets/follow-xiaohongshu.png
 requirements-dev.txt
 tools/release.py

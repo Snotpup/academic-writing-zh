@@ -33,15 +33,18 @@ def parse_skill(raw):
     return yaml.safe_load(match.group(1)), match.group(2)
 
 
-def check_png(data):
-    require(data[:8] == b"\x89PNG\r\n\x1a\n", "Avatar must be PNG")
-    require(struct.unpack(">II", data[16:24]) == (512, 512), "Avatar must be 512 x 512")
-    require(len(data) <= 500000, "Avatar exceeds 500 KB")
+def check_png(data, *, avatar=False):
+    require(data[:8] == b"\x89PNG\r\n\x1a\n", "Image must be PNG")
+    width, height = struct.unpack(">II", data[16:24])
+    require(width > 0 and height > 0, "PNG dimensions must be positive")
+    if avatar:
+        require((width, height) == (512, 512), "Avatar must be 512 x 512")
+        require(len(data) <= 500000, "Avatar exceeds 500 KB")
     offset = 8
     while offset < len(data):
         length = struct.unpack(">I", data[offset:offset + 4])[0]
         kind = data[offset + 4:offset + 8]
-        require(kind not in {b"eXIf", b"tEXt", b"zTXt", b"iTXt", b"tIME"}, "Avatar contains extra metadata")
+        require(kind not in {b"eXIf", b"tEXt", b"zTXt", b"iTXt", b"tIME"}, "PNG contains extra metadata")
         offset += length + 12
     require(offset == len(data), "Malformed PNG chunks")
 
@@ -58,7 +61,7 @@ def check_public_files():
         require(set(filter(None, tracked)) <= set(public), "Tracked files exceed .public-files; review the file list")
     for name in public:
         if name.endswith(".png"):
-            check_png((ROOT / name).read_bytes())
+            check_png((ROOT / name).read_bytes(), avatar=(name == "assets/avatar.png"))
             continue
         text = (ROOT / name).read_text()
         for label, pattern in PATTERNS.items():
